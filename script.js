@@ -1,8 +1,62 @@
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('mindmap-container');
+    const saveButton = document.getElementById('save-button');
+    const newMapButton = document.getElementById('new-map-button');
     let nodeIdCounter = 0;
 
-    // Fonction pour créer un nouveau nœud
+    // --- Fonctions de sauvegarde et de chargement ---
+
+    function saveMindMap() {
+        const nodes = document.querySelectorAll('.node');
+        const mindMapData = {};
+
+        nodes.forEach(node => {
+            mindMapData[node.id] = {
+                id: node.id,
+                text: node.textContent.replace('+', '').replace('x', '').replace('✏️', '').trim(),
+                parentId: node.dataset.parentId,
+                children: node.dataset.children
+            };
+        });
+
+        localStorage.setItem('mindMapData', JSON.stringify(mindMapData));
+        console.log('Carte mentale sauvegardée.');
+    }
+
+    function loadMindMap() {
+        const mindMapData = JSON.parse(localStorage.getItem('mindMapData'));
+
+        if (!mindMapData || Object.keys(mindMapData).length === 0) {
+            createInitialNode();
+            return;
+        }
+
+        container.innerHTML = ''; // Vide le conteneur pour charger la nouvelle carte
+        
+        // Créer les nœuds à partir des données sauvegardées
+        Object.values(mindMapData).forEach(data => {
+            const node = createNode(data.text, data.parentId);
+            node.id = data.id;
+            node.dataset.children = data.children;
+            if (data.parentId === 'null') {
+                node.classList.add('root');
+            }
+        });
+
+        positionNodes();
+        console.log('Carte mentale chargée.');
+    }
+
+    function createInitialNode() {
+        container.innerHTML = '';
+        const rootNode = createNode('Idée principale');
+        rootNode.classList.add('root');
+        positionNodes();
+        saveMindMap();
+    }
+
+    // --- Fonctions existantes (modifiées pour l'autosave) ---
+
     function createNode(text, parentId = null) {
         const node = document.createElement('div');
         const nodeId = `node-${nodeIdCounter++}`;
@@ -10,10 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
         node.id = nodeId;
         node.className = 'node';
         node.dataset.parentId = parentId;
-        node.dataset.children = ''; // Stocke les IDs des enfants
+        node.dataset.children = ''; 
         node.textContent = text;
         
-        // Bouton pour ajouter un enfant
         const addButton = document.createElement('button');
         addButton.className = 'add-button';
         addButton.textContent = '+';
@@ -23,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         node.appendChild(addButton);
 
-        // Bouton pour supprimer le nœud
         const deleteButton = document.createElement('button');
         deleteButton.className = 'delete-button';
         deleteButton.textContent = 'x';
@@ -33,16 +85,19 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         node.appendChild(deleteButton);
 
-        // Double-clic pour éditer le texte
-        node.ondblclick = () => {
+        const editButton = document.createElement('button');
+        editButton.className = 'edit-button';
+        editButton.textContent = '✏️';
+        editButton.onclick = (e) => {
+            e.stopPropagation();
             editNode(node);
         };
+        node.appendChild(editButton);
 
         container.appendChild(node);
         return node;
     }
 
-    // Fonction pour ajouter un nœud à un parent
     function addNodeToParent(parentNode) {
         const newText = prompt("Entrez le texte du nouveau nœud :");
         if (newText) {
@@ -51,10 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
             children.push(newNode.id);
             parentNode.dataset.children = children.join(',');
             positionNodes();
+            saveMindMap(); // Sauvegarde automatique
         }
     }
 
-    // Fonction pour supprimer un nœud et ses enfants
     function deleteNode(node) {
         const confirmation = confirm("Êtes-vous sûr de vouloir supprimer ce nœud et tous ses enfants ?");
         if (confirmation) {
@@ -76,63 +131,52 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             node.remove();
             positionNodes();
+            saveMindMap(); // Sauvegarde automatique
         }
     }
 
-    // Fonction pour éditer le texte d'un nœud
     function editNode(node) {
-        const currentText = node.textContent.replace('+', '').replace('x', '').trim();
+        const buttons = node.querySelectorAll('button');
+        buttons.forEach(btn => btn.remove());
+        
+        const currentText = node.textContent.trim();
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'edit-node';
         input.value = currentText;
 
-        // Remplacer le contenu du nœud par l'input
-        node.innerHTML = '';
+        node.textContent = '';
         node.appendChild(input);
         input.focus();
 
         const saveChanges = () => {
-            node.textContent = input.value.trim() || 'Nouveau nœud';
-            // Remettre les boutons d'action
-            const addButton = document.createElement('button');
-            addButton.className = 'add-button';
-            addButton.textContent = '+';
-            addButton.onclick = (e) => {
-                e.stopPropagation();
-                addNodeToParent(node);
-            };
-            node.appendChild(addButton);
+            const newText = input.value.trim() || 'Nouveau nœud';
             
-            const deleteButton = document.createElement('button');
-            deleteButton.className = 'delete-button';
-            deleteButton.textContent = 'x';
-            deleteButton.onclick = (e) => {
-                e.stopPropagation();
-                deleteNode(node);
-            };
-            node.appendChild(deleteButton);
+            node.remove();
+            const newNode = createNode(newText, node.dataset.parentId);
+            newNode.id = node.id;
+            newNode.dataset.children = node.dataset.children;
+            container.appendChild(newNode);
+
+            positionNodes();
+            saveMindMap(); // Sauvegarde automatique
         };
 
         input.onblur = saveChanges;
         input.onkeypress = (e) => {
             if (e.key === 'Enter') {
                 saveChanges();
-                positionNodes();
             }
         };
     }
 
-    // Fonction pour positionner les nœuds de manière hiérarchique
     function positionNodes() {
         const root = document.querySelector('.node.root');
         if (!root) return;
 
-        // Positionner le nœud racine au centre
         root.style.left = `${container.offsetWidth / 2 - root.offsetWidth / 2}px`;
         root.style.top = '50px';
 
-        // Créer ou vider l'élément SVG pour les lignes
         let svg = document.getElementById('mindmap-lines');
         if (svg) {
             svg.innerHTML = '';
@@ -149,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let yOffset = 150;
 
         while (currentLevel.length > 0) {
-            let totalWidth = 0;
             const childrenPerLevel = [];
             currentLevel.forEach(parentNode => {
                 const childrenIds = parentNode.dataset.children.split(',').filter(id => id);
@@ -163,19 +206,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (nextLevel.length === 0) break;
 
-            let xPosition = 50;
             childrenPerLevel.forEach(item => {
                 const { parent, children } = item;
                 const parentX = parseFloat(parent.style.left);
-                const childrenWidth = children.reduce((sum, child) => sum + child.offsetWidth + 50, 0); // 50px de marge
-
+                const childrenWidth = children.reduce((sum, child) => sum + child.offsetWidth + 50, 0); 
                 let startX = parentX - (childrenWidth / 2);
                 
                 children.forEach(child => {
                     child.style.top = `${yOffset}px`;
                     child.style.left = `${startX}px`;
                     
-                    // Dessiner la ligne
                     const parentRect = parent.getBoundingClientRect();
                     const childRect = child.getBoundingClientRect();
                     const containerRect = container.getBoundingClientRect();
@@ -204,8 +244,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Créer le nœud racine au chargement de la page
-    const rootNode = createNode('Idée principale');
-    rootNode.classList.add('root');
-    positionNodes();
+    // --- Écouteurs d'événements pour les boutons ---
+    saveButton.addEventListener('click', saveMindMap);
+    newMapButton.addEventListener('click', () => {
+        if (confirm("Êtes-vous sûr de vouloir commencer une nouvelle carte ? Toute progression non sauvegardée sera perdue.")) {
+            localStorage.removeItem('mindMapData');
+            createInitialNode();
+        }
+    });
+
+    // --- Lancement de l'application ---
+    loadMindMap();
 });

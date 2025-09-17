@@ -95,3 +95,18 @@ input.edit-node {
     width: calc(100% - 20px);
     text-align: center;
 }
+
+.controls {
+    margin-bottom: 20px;
+}
+
+.controls button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #3498db;
+    color: white;
+    margin: 0 5px;
+}
