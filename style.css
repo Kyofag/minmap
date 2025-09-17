@@ -110,3 +110,12 @@ input.edit-node {
     color: white;
     margin: 0 5px;
 }
+
+/* Ajoute ces lignes dans ton fichier style.css */
+.node {
+    cursor: grab;
+}
+
+.node.dragging {
+    cursor: grabbing;
+}

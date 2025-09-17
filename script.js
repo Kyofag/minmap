@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const newMapButton = document.getElementById('new-map-button');
     let nodeIdCounter = 0;
 
+    let draggedNode = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
     // --- Fonctions de sauvegarde et de chargement ---
 
     function saveMindMap() {
@@ -15,7 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: node.id,
                 text: node.textContent.replace('+', '').replace('x', '').replace('✏️', '').trim(),
                 parentId: node.dataset.parentId,
-                children: node.dataset.children
+                children: node.dataset.children,
+                x: node.style.left,
+                y: node.style.top
             };
         });
 
@@ -31,19 +37,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        container.innerHTML = ''; // Vide le conteneur pour charger la nouvelle carte
+        container.innerHTML = '';
         
-        // Créer les nœuds à partir des données sauvegardées
         Object.values(mindMapData).forEach(data => {
             const node = createNode(data.text, data.parentId);
             node.id = data.id;
             node.dataset.children = data.children;
+            node.style.left = data.x;
+            node.style.top = data.y;
             if (data.parentId === 'null') {
                 node.classList.add('root');
             }
         });
 
-        positionNodes();
+        drawLines();
         console.log('Carte mentale chargée.');
     }
 
@@ -51,11 +58,99 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
         const rootNode = createNode('Idée principale');
         rootNode.classList.add('root');
-        positionNodes();
+        
+        // Positionne le nœud racine au centre au démarrage
+        rootNode.style.left = `${container.offsetWidth / 2 - rootNode.offsetWidth / 2}px`;
+        rootNode.style.top = `${container.offsetHeight / 2 - rootNode.offsetHeight / 2}px`;
+        
+        drawLines();
         saveMindMap();
     }
 
-    // --- Fonctions existantes (modifiées pour l'autosave) ---
+    // --- Fonctions de glisser-déposer ---
+
+    function startDrag(e) {
+        if (e.target.tagName === 'BUTTON') return;
+        draggedNode = e.currentTarget;
+        draggedNode.classList.add('dragging');
+        
+        const rect = draggedNode.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+    }
+
+    function drag(e) {
+        if (!draggedNode) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        
+        let newX = e.clientX - containerRect.left - offsetX;
+        let newY = e.clientY - containerRect.top - offsetY;
+
+        // Empêche le nœud de sortir des bords du conteneur
+        newX = Math.max(0, Math.min(newX, containerRect.width - draggedNode.offsetWidth));
+        newY = Math.max(0, Math.min(newY, containerRect.height - draggedNode.offsetHeight));
+
+        draggedNode.style.left = `${newX}px`;
+        draggedNode.style.top = `${newY}px`;
+        
+        drawLines();
+    }
+
+    function endDrag() {
+        if (draggedNode) {
+            draggedNode.classList.remove('dragging');
+            draggedNode = null;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', endDrag);
+            saveMindMap();
+        }
+    }
+
+    // --- Fonction pour dessiner les lignes (remplace positionNodes) ---
+
+    function drawLines() {
+        let svg = document.getElementById('mindmap-lines');
+        if (svg) {
+            svg.innerHTML = '';
+        } else {
+            svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.id = 'mindmap-lines';
+            container.appendChild(svg);
+        }
+
+        const nodes = document.querySelectorAll('.node');
+        const containerRect = container.getBoundingClientRect();
+
+        nodes.forEach(node => {
+            const parentId = node.dataset.parentId;
+            if (parentId !== 'null') {
+                const parentNode = document.getElementById(parentId);
+                if (parentNode) {
+                    const parentRect = parentNode.getBoundingClientRect();
+                    const nodeRect = node.getBoundingClientRect();
+
+                    const pX = parentRect.left + parentRect.width / 2 - containerRect.left;
+                    const pY = parentRect.top + parentRect.height / 2 - containerRect.top;
+                    const cX = nodeRect.left + nodeRect.width / 2 - containerRect.left;
+                    const cY = nodeRect.top + nodeRect.height / 2 - containerRect.top;
+                    
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', pX);
+                    line.setAttribute('y1', pY);
+                    line.setAttribute('x2', cX);
+                    line.setAttribute('y2', cY);
+                    line.setAttribute('class', 'line');
+                    svg.appendChild(line);
+                }
+            }
+        });
+    }
+
+    // --- Fonctions de gestion des nœuds (mises à jour) ---
 
     function createNode(text, parentId = null) {
         const node = document.createElement('div');
@@ -94,6 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         node.appendChild(editButton);
 
+        // Ajoute l'écouteur d'événement pour le glisser-déposer
+        node.addEventListener('mousedown', startDrag);
+
         container.appendChild(node);
         return node;
     }
@@ -105,8 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const children = parentNode.dataset.children ? parentNode.dataset.children.split(',') : [];
             children.push(newNode.id);
             parentNode.dataset.children = children.join(',');
-            positionNodes();
-            saveMindMap(); // Sauvegarde automatique
+
+            // Positionne le nouveau nœud juste en dessous de son parent
+            const parentRect = parentNode.getBoundingClientRect();
+            newNode.style.left = `${parentRect.left - container.getBoundingClientRect().left}px`;
+            newNode.style.top = `${parentRect.top - container.getBoundingClientRect().top + parentRect.height + 50}px`;
+
+            drawLines();
+            saveMindMap();
         }
     }
 
@@ -130,8 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             node.remove();
-            positionNodes();
-            saveMindMap(); // Sauvegarde automatique
+            drawLines();
+            saveMindMap();
         }
     }
 
@@ -156,10 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const newNode = createNode(newText, node.dataset.parentId);
             newNode.id = node.id;
             newNode.dataset.children = node.dataset.children;
+            newNode.style.left = node.style.left;
+            newNode.style.top = node.style.top;
             container.appendChild(newNode);
 
-            positionNodes();
-            saveMindMap(); // Sauvegarde automatique
+            drawLines();
+            saveMindMap();
         };
 
         input.onblur = saveChanges;
@@ -168,80 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveChanges();
             }
         };
-    }
-
-    function positionNodes() {
-        const root = document.querySelector('.node.root');
-        if (!root) return;
-
-        root.style.left = `${container.offsetWidth / 2 - root.offsetWidth / 2}px`;
-        root.style.top = '50px';
-
-        let svg = document.getElementById('mindmap-lines');
-        if (svg) {
-            svg.innerHTML = '';
-        } else {
-            svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.id = 'mindmap-lines';
-            container.appendChild(svg);
-        }
-
-        const nodesToProcess = [root];
-        const processedNodes = new Set();
-        let currentLevel = [root];
-        let nextLevel = [];
-        let yOffset = 150;
-
-        while (currentLevel.length > 0) {
-            const childrenPerLevel = [];
-            currentLevel.forEach(parentNode => {
-                const childrenIds = parentNode.dataset.children.split(',').filter(id => id);
-                const childrenNodes = childrenIds.map(id => document.getElementById(id)).filter(node => node && !processedNodes.has(node));
-                
-                if (childrenNodes.length > 0) {
-                    childrenPerLevel.push({ parent: parentNode, children: childrenNodes });
-                    nextLevel.push(...childrenNodes);
-                }
-            });
-
-            if (nextLevel.length === 0) break;
-
-            childrenPerLevel.forEach(item => {
-                const { parent, children } = item;
-                const parentX = parseFloat(parent.style.left);
-                const childrenWidth = children.reduce((sum, child) => sum + child.offsetWidth + 50, 0); 
-                let startX = parentX - (childrenWidth / 2);
-                
-                children.forEach(child => {
-                    child.style.top = `${yOffset}px`;
-                    child.style.left = `${startX}px`;
-                    
-                    const parentRect = parent.getBoundingClientRect();
-                    const childRect = child.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    
-                    const pX = parentRect.left + parentRect.width / 2 - containerRect.left;
-                    const pY = parentRect.top + parentRect.height / 2 - containerRect.top;
-                    const cX = childRect.left + childRect.width / 2 - containerRect.left;
-                    const cY = childRect.top + childRect.height / 2 - containerRect.top;
-                    
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', pX);
-                    line.setAttribute('y1', pY);
-                    line.setAttribute('x2', cX);
-                    line.setAttribute('y2', cY);
-                    line.setAttribute('class', 'line');
-                    svg.appendChild(line);
-
-                    startX += child.offsetWidth + 50;
-                    processedNodes.add(child);
-                });
-            });
-
-            currentLevel = nextLevel;
-            nextLevel = [];
-            yOffset += 150;
-        }
     }
 
     // --- Écouteurs d'événements pour les boutons ---
