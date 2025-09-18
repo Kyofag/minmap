@@ -1,10 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('mindmap-container');
+    const menuToggleButton = document.getElementById('menu-toggle-button');
+    const sidebar = document.querySelector('.sidebar');
     const mindmapSelector = document.getElementById('mindmap-selector');
     const loadButton = document.getElementById('load-button');
     const deleteButton = document.getElementById('delete-button');
     const newMapButton = document.getElementById('new-map-button');
     const addRootButton = document.getElementById('add-root-button');
+
+    // Ajoute l'écouteur d'événement pour le bouton de menu
+    menuToggleButton.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
 
     let currentMapName = 'Ma première carte';
     let nodeIdCounter = 0;
@@ -233,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newText) {
             const newNode = createNode(newText, 'null');
             newNode.classList.add('root');
-            // Positionne la nouvelle idée principale aléatoirement pour éviter la superposition
             const randomX = Math.random() * (container.offsetWidth - newNode.offsetWidth);
             const randomY = Math.random() * (container.offsetHeight - newNode.offsetHeight);
             newNode.style.left = `${randomX}px`;
@@ -314,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedMap = mindmapSelector.value;
         if (selectedMap) {
             loadMap(selectedMap);
+            sidebar.classList.remove('active');
         }
     });
 
@@ -331,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 createInitialState();
             }
+            sidebar.classList.remove('active');
         }
     });
 
@@ -346,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addRootNode();
                 listAllMaps();
             }
+            sidebar.classList.remove('active');
         }
     });
 
