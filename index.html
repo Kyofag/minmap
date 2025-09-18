@@ -9,23 +9,15 @@
 <body>
     <h1>Mind Map Interactive</h1>
 
-    <div class="main-container">
-        <div class="sidebar">
-            <div class="sidebar-section">
-                <h3>Gestion des cartes</h3>
-                <select id="mindmap-selector"></select>
-                <button id="load-button">Charger</button>
-                <button id="delete-button">Supprimer</button>
-                <button id="new-map-button">Nouvelle Carte</button>
-            </div>
-            <div class="sidebar-section">
-                <h3>Actions</h3>
-                <button id="add-root-button">Ajouter une idée principale</button>
-            </div>
-        </div>
-        
-        <div id="mindmap-container"></div>
+    <div class="controls">
+        <select id="mindmap-selector"></select>
+        <button id="load-button">Charger</button>
+        <button id="delete-button">Supprimer</button>
+        <button id="new-map-button">Nouvelle Carte</button>
+        <button id="add-root-button">Ajouter une idée principale</button>
     </div>
+    
+    <div id="mindmap-container"></div>
     
     <script src="script.js"></script>
 </body>
