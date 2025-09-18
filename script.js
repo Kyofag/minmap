@@ -1,16 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('mindmap-container');
-    const saveButton = document.getElementById('save-button');
+    const mindmapSelector = document.getElementById('mindmap-selector');
+    const loadButton = document.getElementById('load-button');
+    const deleteButton = document.getElementById('delete-button');
     const newMapButton = document.getElementById('new-map-button');
+    const addRootButton = document.getElementById('add-root-button');
+
+    let currentMapName = 'Ma première carte';
     let nodeIdCounter = 0;
 
     let draggedNode = null;
     let offsetX = 0;
     let offsetY = 0;
 
-    // --- Fonctions de sauvegarde et de chargement ---
+    // --- Fonctions de gestion des cartes mentales ---
 
-    function saveMindMap() {
+    function saveCurrentMap() {
         const nodes = document.querySelectorAll('.node');
         const mindMapData = {};
 
@@ -25,21 +30,27 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
-        localStorage.setItem('mindMapData', JSON.stringify(mindMapData));
-        console.log('Carte mentale sauvegardée.');
+        const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
+        allMaps[currentMapName] = mindMapData;
+        localStorage.setItem('allMindMaps', JSON.stringify(allMaps));
+        console.log(`Carte "${currentMapName}" sauvegardée.`);
     }
 
-    function loadMindMap() {
-        const mindMapData = JSON.parse(localStorage.getItem('mindMapData'));
+    function loadMap(mapName) {
+        const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
+        const mapData = allMaps[mapName];
 
-        if (!mindMapData || Object.keys(mindMapData).length === 0) {
-            createInitialNode();
+        container.innerHTML = '';
+        currentMapName = mapName;
+        document.title = `Mind Map - ${currentMapName}`;
+        
+        if (!mapData || Object.keys(mapData).length === 0) {
+            console.log(`Nouvelle carte "${mapName}" créée.`);
+            addRootNode();
             return;
         }
 
-        container.innerHTML = '';
-        
-        Object.values(mindMapData).forEach(data => {
+        Object.values(mapData).forEach(data => {
             const node = createNode(data.text, data.parentId);
             node.id = data.id;
             node.dataset.children = data.children;
@@ -51,26 +62,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         drawLines();
-        console.log('Carte mentale chargée.');
+        console.log(`Carte "${currentMapName}" chargée.`);
     }
 
-    function createInitialNode() {
-        container.innerHTML = '';
-        const rootNode = createNode('Idée principale');
-        rootNode.classList.add('root');
-        
-        // Positionne le nœud racine au centre au démarrage
-        rootNode.style.left = `${container.offsetWidth / 2 - rootNode.offsetWidth / 2}px`;
-        rootNode.style.top = `${container.offsetHeight / 2 - rootNode.offsetHeight / 2}px`;
-        
-        drawLines();
-        saveMindMap();
+    function listAllMaps() {
+        const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
+        const mapNames = Object.keys(allMaps);
+
+        mindmapSelector.innerHTML = '';
+        if (mapNames.length === 0) {
+            mindmapSelector.innerHTML = '<option>Aucune carte</option>';
+            return;
+        }
+
+        mapNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            mindmapSelector.appendChild(option);
+        });
+
+        mindmapSelector.value = currentMapName;
     }
 
     // --- Fonctions de glisser-déposer ---
 
     function startDrag(e) {
-        if (e.target.tagName === 'BUTTON') return;
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
         draggedNode = e.currentTarget;
         draggedNode.classList.add('dragging');
         
@@ -90,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let newX = e.clientX - containerRect.left - offsetX;
         let newY = e.clientY - containerRect.top - offsetY;
 
-        // Empêche le nœud de sortir des bords du conteneur
         newX = Math.max(0, Math.min(newX, containerRect.width - draggedNode.offsetWidth));
         newY = Math.max(0, Math.min(newY, containerRect.height - draggedNode.offsetHeight));
 
@@ -106,11 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
             draggedNode = null;
             document.removeEventListener('mousemove', drag);
             document.removeEventListener('mouseup', endDrag);
-            saveMindMap();
+            saveCurrentMap();
         }
     }
 
-    // --- Fonction pour dessiner les lignes (remplace positionNodes) ---
+    // --- Fonction pour dessiner les lignes ---
 
     function drawLines() {
         let svg = document.getElementById('mindmap-lines');
@@ -150,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Fonctions de gestion des nœuds (mises à jour) ---
+    // --- Fonctions de gestion des nœuds ---
 
     function createNode(text, parentId = null) {
         const node = document.createElement('div');
@@ -189,9 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         node.appendChild(editButton);
 
-        // Ajoute l'écouteur d'événement pour le glisser-déposer
         node.addEventListener('mousedown', startDrag);
-
         container.appendChild(node);
         return node;
     }
@@ -204,13 +219,27 @@ document.addEventListener('DOMContentLoaded', () => {
             children.push(newNode.id);
             parentNode.dataset.children = children.join(',');
 
-            // Positionne le nouveau nœud juste en dessous de son parent
             const parentRect = parentNode.getBoundingClientRect();
             newNode.style.left = `${parentRect.left - container.getBoundingClientRect().left}px`;
             newNode.style.top = `${parentRect.top - container.getBoundingClientRect().top + parentRect.height + 50}px`;
 
             drawLines();
-            saveMindMap();
+            saveCurrentMap();
+        }
+    }
+
+    function addRootNode() {
+        const newText = prompt("Nom de la nouvelle idée principale :");
+        if (newText) {
+            const newNode = createNode(newText, 'null');
+            newNode.classList.add('root');
+            // Positionne la nouvelle idée principale aléatoirement pour éviter la superposition
+            const randomX = Math.random() * (container.offsetWidth - newNode.offsetWidth);
+            const randomY = Math.random() * (container.offsetHeight - newNode.offsetHeight);
+            newNode.style.left = `${randomX}px`;
+            newNode.style.top = `${randomY}px`;
+            drawLines();
+            saveCurrentMap();
         }
     }
 
@@ -226,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             const parentId = node.dataset.parentId;
-            if (parentId) {
+            if (parentId !== 'null') {
                 const parentNode = document.getElementById(parentId);
                 if (parentNode) {
                     let parentChildren = parentNode.dataset.children.split(',').filter(id => id !== node.id);
@@ -235,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             node.remove();
             drawLines();
-            saveMindMap();
+            saveCurrentMap();
         }
     }
 
@@ -263,9 +292,13 @@ document.addEventListener('DOMContentLoaded', () => {
             newNode.style.left = node.style.left;
             newNode.style.top = node.style.top;
             container.appendChild(newNode);
+            
+            if (node.classList.contains('root')) {
+                newNode.classList.add('root');
+            }
 
             drawLines();
-            saveMindMap();
+            saveCurrentMap();
         };
 
         input.onblur = saveChanges;
@@ -277,14 +310,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Écouteurs d'événements pour les boutons ---
-    saveButton.addEventListener('click', saveMindMap);
-    newMapButton.addEventListener('click', () => {
-        if (confirm("Êtes-vous sûr de vouloir commencer une nouvelle carte ? Toute progression non sauvegardée sera perdue.")) {
-            localStorage.removeItem('mindMapData');
-            createInitialNode();
+    loadButton.addEventListener('click', () => {
+        const selectedMap = mindmapSelector.value;
+        if (selectedMap) {
+            loadMap(selectedMap);
         }
     });
 
+    deleteButton.addEventListener('click', () => {
+        const mapToDelete = mindmapSelector.value;
+        if (mapToDelete && confirm(`Êtes-vous sûr de vouloir supprimer la carte "${mapToDelete}" ?`)) {
+            const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
+            delete allMaps[mapToDelete];
+            localStorage.setItem('allMindMaps', JSON.stringify(allMaps));
+            listAllMaps();
+            
+            const remainingMaps = Object.keys(allMaps);
+            if (remainingMaps.length > 0) {
+                loadMap(remainingMaps[0]);
+            } else {
+                createInitialState();
+            }
+        }
+    });
+
+    newMapButton.addEventListener('click', () => {
+        const newMapName = prompt("Entrez le nom de la nouvelle carte :");
+        if (newMapName) {
+            const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
+            if (allMaps[newMapName]) {
+                alert("Une carte avec ce nom existe déjà.");
+            } else {
+                currentMapName = newMapName;
+                container.innerHTML = '';
+                addRootNode();
+                listAllMaps();
+            }
+        }
+    });
+
+    addRootButton.addEventListener('click', addRootNode);
+    
     // --- Lancement de l'application ---
-    loadMindMap();
+    function createInitialState() {
+        const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
+        if (Object.keys(allMaps).length === 0) {
+            const newMapName = 'Ma première carte';
+            currentMapName = newMapName;
+            container.innerHTML = '';
+            addRootNode();
+        } else {
+            currentMapName = Object.keys(allMaps)[0];
+        }
+        listAllMaps();
+        loadMap(currentMapName);
+    }
+    createInitialState();
 });
