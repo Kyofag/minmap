@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCancelButton = document.getElementById('modal-cancel-button');
 
     // Gère l'affichage du pop-up
-    let customPromptCallback = null;
     function showCustomPrompt(title, defaultValue = '') {
         return new Promise(resolve => {
             modalTitle.textContent = title;
@@ -333,45 +332,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function editNode(node) {
+    async function editNode(node) {
         const buttons = node.querySelectorAll('button');
         buttons.forEach(btn => btn.remove());
         
         const currentText = node.textContent.replace('+', '').replace('x', '').replace('✏️', '').trim();
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'edit-node';
-        input.value = currentText;
-
-        node.textContent = '';
-        node.appendChild(input);
-        input.focus();
-
-        const saveChanges = () => {
-            const newText = input.value.trim() || 'Nouveau nœud';
+        
+        const newText = await showCustomPrompt("Modifier le texte du nœud :", currentText);
+        if (newText !== null) {
+            node.textContent = newText;
             
-            node.remove();
-            const newNode = createNode(newText, node.dataset.parentId);
-            newNode.id = node.id;
-            newNode.dataset.children = node.dataset.children;
-            newNode.style.left = node.style.left;
-            newNode.style.top = node.style.top;
-            container.appendChild(newNode);
+            // Recréer les boutons
+            const addButton = document.createElement('button');
+            addButton.className = 'add-button';
+            addButton.textContent = '+';
+            addButton.onclick = (e) => { e.stopPropagation(); addNodeToParent(node); };
+            node.appendChild(addButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-button';
+            deleteButton.textContent = 'x';
+            deleteButton.onclick = (e) => { e.stopPropagation(); deleteNode(node); };
+            node.appendChild(deleteButton);
             
-            if (node.classList.contains('root')) {
-                newNode.classList.add('root');
-            }
+            const editButton = document.createElement('button');
+            editButton.className = 'edit-button';
+            editButton.textContent = '✏️';
+            editButton.onclick = (e) => { e.stopPropagation(); editNode(node); };
+            node.appendChild(editButton);
 
             drawLines();
             saveCurrentMap();
-        };
-
-        input.onblur = saveChanges;
-        input.onkeypress = (e) => {
-            if (e.key === 'Enter') {
-                saveChanges();
-            }
-        };
+        }
     }
 
     // --- Écouteurs d'événements pour les boutons ---
