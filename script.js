@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ajoute l'écouteur d'événement pour le bouton de menu
     menuToggleButton.addEventListener('click', () => {
         sidebar.classList.toggle('active');
+        menuToggleButton.classList.toggle('hidden');
     });
 
     let currentMapName = 'Ma première carte';
@@ -321,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedMap) {
             loadMap(selectedMap);
             sidebar.classList.remove('active');
+            menuToggleButton.classList.remove('hidden');
         }
     });
 
@@ -339,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 createInitialState();
             }
             sidebar.classList.remove('active');
+            menuToggleButton.classList.remove('hidden');
         }
     });
 
@@ -355,6 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 listAllMaps();
             }
             sidebar.classList.remove('active');
+            menuToggleButton.classList.remove('hidden');
         }
     });
 
