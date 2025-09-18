@@ -103,6 +103,7 @@ h1 {
     border-radius: 5px;
     background-color: #3498db;
     color: white;
+    margin-right: 10px;
 }
 
 #mindmap-container {
@@ -180,6 +181,13 @@ h1 {
 
 .add-button:hover, .delete-button:hover, .edit-button:hover {
     transform: scale(1.1);
+}
+
+/* Nouvelles règles pour cacher les boutons des nœuds */
+.hide-node-buttons .node .add-button,
+.hide-node-buttons .node .delete-button,
+.hide-node-buttons .node .edit-button {
+    display: none;
 }
 
 svg {

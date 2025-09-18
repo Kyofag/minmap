@@ -7,11 +7,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteButton = document.getElementById('delete-button');
     const newMapButton = document.getElementById('new-map-button');
     const addRootButton = document.getElementById('add-root-button');
+    const toggleNodeButtons = document.getElementById('toggle-node-buttons');
 
     // Ajoute l'écouteur d'événement pour le bouton de menu
     menuToggleButton.addEventListener('click', () => {
         sidebar.classList.toggle('active');
         menuToggleButton.classList.toggle('hidden');
+    });
+
+    // Ajoute l'écouteur d'événement pour cacher/afficher les boutons des nœuds
+    toggleNodeButtons.addEventListener('click', () => {
+        container.classList.toggle('hide-node-buttons');
+        if (container.classList.contains('hide-node-buttons')) {
+            toggleNodeButtons.textContent = 'Afficher les boutons';
+        } else {
+            toggleNodeButtons.textContent = 'Cacher les boutons';
+        }
     });
 
     let currentMapName = 'Ma première carte';
