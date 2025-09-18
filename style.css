@@ -183,7 +183,6 @@ h1 {
     transform: scale(1.1);
 }
 
-/* Nouvelles règles pour cacher les boutons des nœuds */
 .hide-node-buttons .node .add-button,
 .hide-node-buttons .node .delete-button,
 .hide-node-buttons .node .edit-button {
@@ -212,4 +211,54 @@ input.edit-node {
     padding: 5px 10px;
     width: calc(100% - 20px);
     text-align: center;
+}
+
+/* Styles pour le champ de texte personnalisé (modal) */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none; /* Caché par défaut */
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    width: 300px;
+}
+
+#node-text-input {
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.modal-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 0 5px;
+}
+
+#modal-ok-button {
+    background-color: #2ecc71;
+    color: white;
+}
+
+#modal-cancel-button {
+    background-color: #e74c3c;
+    color: white;
 }

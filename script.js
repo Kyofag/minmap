@@ -9,6 +9,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const addRootButton = document.getElementById('add-root-button');
     const toggleNodeButtons = document.getElementById('toggle-node-buttons');
 
+    // Nouveaux éléments pour le pop-up
+    const modal = document.getElementById('text-input-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const nodeTextInput = document.getElementById('node-text-input');
+    const modalOkButton = document.getElementById('modal-ok-button');
+    const modalCancelButton = document.getElementById('modal-cancel-button');
+
+    // Gère l'affichage du pop-up
+    let customPromptCallback = null;
+    function showCustomPrompt(title, defaultValue = '') {
+        return new Promise(resolve => {
+            modalTitle.textContent = title;
+            nodeTextInput.value = defaultValue;
+            modal.style.display = 'flex';
+            nodeTextInput.focus();
+
+            const onOk = () => {
+                const text = nodeTextInput.value.trim();
+                modal.style.display = 'none';
+                resolve(text);
+                removeListeners();
+            };
+
+            const onCancel = () => {
+                modal.style.display = 'none';
+                resolve(null);
+                removeListeners();
+            };
+
+            const onKeypress = (e) => {
+                if (e.key === 'Enter') {
+                    onOk();
+                }
+            };
+            
+            modalOkButton.addEventListener('click', onOk);
+            modalCancelButton.addEventListener('click', onCancel);
+            nodeTextInput.addEventListener('keypress', onKeypress);
+
+            const removeListeners = () => {
+                modalOkButton.removeEventListener('click', onOk);
+                modalCancelButton.removeEventListener('click', onCancel);
+                nodeTextInput.removeEventListener('keypress', onKeypress);
+            };
+        });
+    }
+
     // Ajoute l'écouteur d'événement pour le bouton de menu
     menuToggleButton.addEventListener('click', () => {
         sidebar.classList.toggle('active');
@@ -230,8 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return node;
     }
 
-    function addNodeToParent(parentNode) {
-        const newText = prompt("Entrez le texte du nouveau nœud :");
+    async function addNodeToParent(parentNode) {
+        const newText = await showCustomPrompt("Entrez le texte du nouveau nœud :");
         if (newText) {
             const newNode = createNode(newText, parentNode.id);
             const children = parentNode.dataset.children ? parentNode.dataset.children.split(',') : [];
@@ -247,8 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function addRootNode() {
-        const newText = prompt("Nom de la nouvelle idée principale :");
+    async function addRootNode() {
+        const newText = await showCustomPrompt("Nom de la nouvelle idée principale :");
         if (newText) {
             const newNode = createNode(newText, 'null');
             newNode.classList.add('root');
@@ -290,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const buttons = node.querySelectorAll('button');
         buttons.forEach(btn => btn.remove());
         
-        const currentText = node.textContent.trim();
+        const currentText = node.textContent.replace('+', '').replace('x', '').replace('✏️', '').trim();
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'edit-node';
@@ -356,8 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    newMapButton.addEventListener('click', () => {
-        const newMapName = prompt("Entrez le nom de la nouvelle carte :");
+    newMapButton.addEventListener('click', async () => {
+        const newMapName = await showCustomPrompt("Entrez le nom de la nouvelle carte :");
         if (newMapName) {
             const allMaps = JSON.parse(localStorage.getItem('allMindMaps')) || {};
             if (allMaps[newMapName]) {
