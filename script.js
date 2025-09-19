@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newMapButton = document.getElementById('new-map-button');
     const addRootButton = document.getElementById('add-root-button');
     const toggleNodeButtons = document.getElementById('toggle-node-buttons');
+    const downloadButton = document.getElementById('download-button');
 
     // Nouveaux éléments pour le pop-up
     const modal = document.getElementById('text-input-modal');
@@ -366,6 +367,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Fonction pour télécharger la carte mentale en image ---
+    function downloadMindMapAsImage() {
+        html2canvas(container).then(canvas => {
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `mindmap-${currentMapName}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
     // --- Écouteurs d'événements pour les boutons ---
     loadButton.addEventListener('click', () => {
         const selectedMap = mindmapSelector.value;
@@ -413,6 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addRootButton.addEventListener('click', addRootNode);
+    downloadButton.addEventListener('click', downloadMindMapAsImage);
     
     // --- Lancement de l'application ---
     function createInitialState() {
